@@ -17,7 +17,7 @@ http://gstreamer.freedesktop.org/data/pkg/windows/1.2.0/
 
 インストールしたファイルにパスを通す  
 デフォルトの場合、  
-PATHにC:\gstreamer\1.0\x86を追加  
+PATHにC:\gstreamer\1.0\x86\binを追加  
 GST_PLUGIN_PATHを作成してC:\gstreamer\1.0\x86を登録  
 
 以上。
