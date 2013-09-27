@@ -4,7 +4,7 @@ tagenya
 なんでも実況V　多元配信ツール
 
 gstreamer1.0で作成
-
+注：gstreamer0.10から移殖したので調整はこれからよ  
 
 [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/kikakubu-ksg/tagenya/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
 
@@ -19,6 +19,13 @@ http://gstreamer.freedesktop.org/data/pkg/windows/1.2.0/
 デフォルトの場合、  
 PATHにC:\gstreamer\1.0\x86\binを追加  
 GST_PLUGIN_PATHを作成してC:\gstreamer\1.0\x86を登録  
+
+#簡単な説明  
+鏡置き場にベースポート（デフォルトは47000）から１ずつ足して取得する元数のポートを開けてListenしておく  
+９元鏡の場合は47000から47008まで使う  
+多元舎実行するとポート監視を開始するので、鏡置き場に接続があったら自動的にex側の配信に出力される  
+ex側のデフォルト出力ポートは48000  
+
 
 以上。
 
