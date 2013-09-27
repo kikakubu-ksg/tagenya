@@ -20,6 +20,8 @@ Thumbs.db
 *.ilk
 *.log
 *.sdf
+*.tlog
+*.idb
 [Bb]in
 *.lib
 *.sbr

@@ -9,7 +9,7 @@
 #include <direct.h>
 
 /* macro */
-#define STREAM_AMOUNT 9           // ストリーム元数
+#define STREAM_AMOUNT 5           // ストリーム元数
 #define POLLING_SECOND 20         // ポート監視間隔
 #define TAGENYA_VERSION "0.0.99"	// バージョン
 #define LATENCY 20000000000			  // default latency in nanoseconds
@@ -34,10 +34,14 @@
 
 #define PATHNAME_SIZE 2048
 
+#define DEBUGMOD
+
 #ifdef DEBUGMOD
 #define DEBUG(fmt, ...) g_print(g_strdup_printf("%d: %s",__LINE__, fmt), __VA_ARGS__)
+#define DEBUGLINE() g_print(g_strdup_printf("DEBUGLINE : %d\n",__LINE__))
 #else
 #define DEBUG(fmt, ...) g_print("")
+#define DEBUGLINE() g_print("")
 #endif
 
 
@@ -448,10 +452,12 @@ static gboolean
       GstState old_state, new_state, pending_state;
       time_t timer;
       time(&timer);
+      DEBUGLINE();
       gst_message_parse_state_changed (msg, &old_state, &new_state, &pending_state);
-
+      DEBUGLINE();
       g_print ("Element %s state changed from %s to %s:\n",
         GST_OBJECT_NAME (msg->src), gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
+      DEBUGLINE();
     }
     break;
   case GST_MESSAGE_NEW_CLOCK:
@@ -540,27 +546,27 @@ static gboolean
       gst_message_parse_state_changed (msg, &old_state, &new_state, &pending_state);
 
       g_print ("Element %s state changed from %s to %s:\n",
-        GST_OBJECT_NAME (msg->src), gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
+        GST_OBJECT_NAME (msg->src), gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));DEBUGLINE();
     }
     break;
   case GST_MESSAGE_NEW_CLOCK:
-    DEBUG ("New Clock Created\n");
+    DEBUG ("New Clock Created\n");DEBUGLINE();
     break;
   case GST_MESSAGE_CLOCK_LOST:
-    DEBUG ("Clock Lost\n");
+    DEBUG ("Clock Lost\n");DEBUGLINE();
     break;
   case GST_MESSAGE_LATENCY:
-    DEBUG ("Pipeline required latency.\n");
+    DEBUG ("Pipeline required latency.\n");DEBUGLINE();
     break;
   case GST_MESSAGE_STREAM_STATUS: {
     GstStreamStatusType type;
     GstElement *owner;
     gst_message_parse_stream_status (msg, &type, &owner);
-    DEBUG ("Stream_status received from element %s type: %d owner:%s\n", GST_OBJECT_NAME (msg->src), type, GST_OBJECT_NAME (owner));
+    DEBUG ("Stream_status received from element %s type: %d owner:%s\n", GST_OBJECT_NAME (msg->src), type, GST_OBJECT_NAME (owner));DEBUGLINE();
     break;
                                   }
   default:
-    DEBUG ("Message received. Type:%s from %s\n", GST_MESSAGE_TYPE_NAME(msg), GST_OBJECT_NAME (msg->src));
+    DEBUG ("Message received. Type:%s from %s\n", GST_MESSAGE_TYPE_NAME(msg), GST_OBJECT_NAME (msg->src));DEBUGLINE();
     break;
   }
 
@@ -578,37 +584,37 @@ static void pad_added_handler1 (GstElement *src, GstPad *new_pad, CustomData *da
   const gchar *new_pad_type    = NULL;
 
   g_print ("Received new pad '%s' from '%s':\n", GST_PAD_NAME (new_pad), GST_ELEMENT_NAME (src));
-
+  DEBUGLINE();
   /* Check the new pad's type */
   //new_pad_caps   = gst_pad_get_caps (new_pad);
   new_pad_caps   = gst_pad_query_caps (new_pad, NULL);
   new_pad_struct = gst_caps_get_structure (new_pad_caps, 0);
   new_pad_type   = gst_structure_get_name (new_pad_struct);
-
+  DEBUGLINE();
   //sink_pad_caps = gst_pad_get_caps (vsink_pad);
   sink_pad_caps = gst_pad_query_caps (vsink_pad, NULL);
-
+  DEBUGLINE();
   /* Attempt the link */
   if (g_str_has_prefix (new_pad_type, "audio/x-raw")) {
     goto exig;
   } else {
     ret = gst_pad_link (new_pad, vsink_pad);
   }
-
+  DEBUGLINE();
   if (GST_PAD_LINK_FAILED (ret)) {
     g_print ("  Type is '%s' but link failed.\n", new_pad_type);
   } else {
     g_print ("  Link succeeded (type '%s').\n", new_pad_type);
-  }
+  }DEBUGLINE();
 
 exig:
   /* Unreference the new pad's caps, if we got them */
   if (new_pad_caps != NULL)
     gst_caps_unref (new_pad_caps);
-
+  DEBUGLINE();
   if (sink_pad_caps != NULL)
     gst_caps_unref (sink_pad_caps);
-
+  DEBUGLINE();
   /* Unreference the sink pad */
   gst_object_unref (vsink_pad);
 }
@@ -639,12 +645,12 @@ static void mms_pad_added_handler (GstElement *src, GstPad *new_pad, MmsData *da
     gst_element_link_many (data->a_queue, data->a_convert, data->a_resample, data->a_appsink, NULL);
     asink_pad = gst_element_get_static_pad (data->a_queue,   "sink");
     ret = gst_pad_link (new_pad, asink_pad);
-
+    DEBUGLINE();
     gst_element_set_state (data->a_appsink,  GST_STATE_PLAYING);
     gst_element_set_state (data->a_resample, GST_STATE_PLAYING);
     gst_element_set_state (data->a_convert,  GST_STATE_PLAYING);
     gst_element_set_state (data->a_queue,    GST_STATE_PLAYING);
-
+    DEBUGLINE();
     gst_object_unref (asink_pad);
 
   } else if (g_str_has_prefix (new_pad_type, "video")){
@@ -654,7 +660,7 @@ static void mms_pad_added_handler (GstElement *src, GstPad *new_pad, MmsData *da
     gst_element_link_many (data->v_queue, data->colorspace, data->scale, data->rate, data->filter,  data->videobox,  data->v_appsink, NULL);
     vsink_pad = gst_element_get_static_pad (data->v_queue,   "sink");
     ret = gst_pad_link (new_pad, vsink_pad);
-
+    DEBUGLINE();
     gst_element_set_state (data->v_appsink,GST_STATE_PLAYING);
     gst_element_set_state (data->videobox, GST_STATE_PLAYING);
     gst_element_set_state (data->filter,   GST_STATE_PLAYING);
@@ -662,7 +668,7 @@ static void mms_pad_added_handler (GstElement *src, GstPad *new_pad, MmsData *da
     gst_element_set_state (data->scale,    GST_STATE_PLAYING);
     gst_element_set_state (data->colorspace,    GST_STATE_PLAYING);
     gst_element_set_state (data->v_queue,  GST_STATE_PLAYING);
-
+    DEBUGLINE();
     gst_object_unref (vsink_pad);
   }
 
@@ -671,7 +677,7 @@ static void mms_pad_added_handler (GstElement *src, GstPad *new_pad, MmsData *da
   } else {
     g_print ("  Link succeeded (type '%s').\n", new_pad_type);
   }
-
+  DEBUGLINE();
   /* Unreference the new pad's caps, if we got them */
   if (new_pad_caps != NULL)
     gst_caps_unref (new_pad_caps);
@@ -686,7 +692,7 @@ static void
   MmsData    *mmsdata = (MmsData *)user_data;
   CustomData *data    = (CustomData *)mmsdata->parent;
   GstFormat   format  = GST_FORMAT_TIME;
-
+  DEBUGLINE();
   if (gst_element_query_position (GST_ELEMENT_CAST(data->pipeline), format, &pos)) {
     mmsdata->buffer_time = pos; // pipeline running time
   }
@@ -711,7 +717,7 @@ static void cb_catch_v_eos (
     gst_pad_remove_probe (pad, mmsdata->prob_hd_v_eos);
     // send message to pipeline
     message = gst_message_new_element(GST_OBJECT(mmsdata->v_app_q), NULL);
-    bus = gst_pipeline_get_bus (GST_PIPELINE (parent->pipeline));
+    bus = gst_pipeline_get_bus (GST_PIPELINE (parent->pipeline));DEBUGLINE();
     gst_bus_post (bus, message);
     gst_object_unref (bus);
   }
@@ -725,7 +731,7 @@ static void cb_catch_a_eos (
 {
   MmsData    *mmsdata = (MmsData *)user_data;
   CustomData *parent    = (CustomData *)mmsdata->parent;
-
+  DEBUGLINE();
   /* if eos-event*/
   if(GST_EVENT_TYPE(event) == GST_EVENT_EOS){
     GstMessage *message;
@@ -736,7 +742,7 @@ static void cb_catch_a_eos (
     message = gst_message_new_element(GST_OBJECT(mmsdata->a_app_q) ,NULL);
     bus = gst_pipeline_get_bus (GST_PIPELINE (parent->pipeline));
     gst_bus_post (bus, message);
-    gst_object_unref (bus);
+    gst_object_unref (bus);DEBUGLINE();
   }
 }
 
@@ -757,36 +763,36 @@ void
     mmsdata->prob_hd = 0;
     gst_object_unref (pad);
     gst_element_set_state (mmsdata->pipeline,   GST_STATE_NULL);
-
+    DEBUGLINE();
     // main
     gst_bin_remove_many (GST_BIN (mmsdata->pipeline), 
       mmsdata->source, mmsdata->queue, mmsdata->decoder, 
       NULL);
-
+    DEBUGLINE();
     // video
     if (gst_bin_get_by_name(GST_BIN(mmsdata->pipeline), GST_ELEMENT_NAME(mmsdata->v_appsink)) != NULL){
       gst_bin_remove_many (GST_BIN (mmsdata->pipeline), 
         mmsdata->v_queue, mmsdata->scale, mmsdata->rate, mmsdata->filter, mmsdata->videobox, mmsdata->v_appsink,
         NULL);
     }
-
+    DEBUGLINE();
     // audio
     if (gst_bin_get_by_name(GST_BIN(mmsdata->pipeline), GST_ELEMENT_NAME(mmsdata->a_appsink)) != NULL){
       gst_bin_remove_many (GST_BIN (mmsdata->pipeline), 
         mmsdata->a_queue, mmsdata->a_convert, mmsdata->a_resample, mmsdata->a_appsink,
         NULL);
     }
-
+    DEBUGLINE();
     mmsdata->buffer_time = 0;
     mmsdata->clock = clock();
 
     /* dispose appsrc */
-    
+    DEBUGLINE();
     // video
     if (gst_bin_get_by_name(GST_BIN(parent->pipeline), GST_ELEMENT_NAME(mmsdata->v_appsrc)) != NULL){
       g_signal_emit_by_name (mmsdata->v_appsrc, "end-of-stream", &ret);
     }
-
+    DEBUGLINE();
     // audio
     if (gst_bin_get_by_name(GST_BIN(parent->pipeline), GST_ELEMENT_NAME(mmsdata->a_appsrc)) != NULL){
       g_signal_emit_by_name (mmsdata->a_appsrc, "end-of-stream", &ret);
@@ -804,7 +810,7 @@ gboolean
     int status;
 
     //DEBUG ("Polling for #%d stream...\n", i);
-
+    DEBUGLINE();
     /* timeout check */
     /* If buffer idle time > timeout_length then despose mms stream */
     if (gst_bin_get_by_name(GST_BIN(mmsdata->pipeline), GST_ELEMENT_NAME(mmsdata->source)) != NULL
@@ -812,9 +818,9 @@ gboolean
         gint64 c_pos; //current position
         GstFormat format = GST_FORMAT_TIME;
         clock_t c_clock = clock();
-
+        DEBUGLINE();
         gst_element_query_position (parent->pipeline, format, &c_pos); // current position
-
+        DEBUGLINE();
         /* If state isn't PLAYING,  */
         if(GST_STATE(mmsdata->source) == GST_STATE_PLAYING &&
           mmsdata->buffer_time > 0 &&
@@ -823,14 +829,14 @@ gboolean
             /* dispose */ 
             g_printerr ("Timed out: perhaps no more buffer exists. \n");
             dispose_mms_stream(mmsdata);
-
+DEBUGLINE();
         } 
         /* Force timeout */
         else if( (c_clock - mmsdata->clock) / CLOCKS_PER_SEC > CLOCK_TIMEOUT
           ){
             /* dispose */ 
             g_printerr ("Timed out: stream has stopped over timeout range. \n");
-
+DEBUGLINE();
             dispose_mms_stream(mmsdata);
         }
     }
@@ -839,19 +845,22 @@ gboolean
     if(gst_bin_get_by_name(GST_BIN(mmsdata->pipeline), GST_ELEMENT_NAME(mmsdata->source)) == NULL &&
       GST_STATE(mmsdata->source) <= 1){ // NULL
         GstBus *bus;
-
+        DEBUGLINE();
         /* http status check */
         status = httptest(g_strdup_printf("http://%s", mmsdata->mms_location));
+        
+        //status=-1;
+        DEBUGLINE();
         if( status < 0){
           DEBUG("no #%d mms stream yet\n", mmsdata->number);
           return TRUE;
         }
-
+        DEBUGLINE();
         if( status == HTTP_BUSY){
           DEBUG("mms stream #%d has already connected\n", mmsdata->number);
           return TRUE;
         }
-
+        DEBUGLINE();
         /* Add elements to mms-pipeline */
         gst_bin_add_many (GST_BIN (mmsdata->pipeline), 
           mmsdata->source, mmsdata->queue, mmsdata->decoder, 
@@ -865,24 +874,24 @@ gboolean
         bus = gst_pipeline_get_bus (GST_PIPELINE (mmsdata->pipeline));
         gst_bus_add_watch (bus, bus_call_sub, mmsdata);
         gst_object_unref (bus);
-
+        DEBUGLINE();
         /* capture the buffer */
         pad = gst_element_get_static_pad (mmsdata->source, "src");
         //mmsdata->prob_hd = gst_pad_add_buffer_probe (pad, (GCallback) cb_catch_buffer, mmsdata);
         mmsdata->prob_hd = gst_pad_add_probe (pad, GST_PAD_PROBE_TYPE_BUFFER, (GstPadProbeCallback) cb_catch_buffer, mmsdata, NULL);
         gst_object_unref (pad);
-
+        DEBUGLINE();
         /* set clock*/
         mmsdata->clock = clock();
-
+        DEBUGLINE();
         /* set latency */
         if (!gst_element_send_event (mmsdata->pipeline, gst_event_new_latency (latency)))
         	  g_warning ("latency set failed\n");
 
         gst_element_set_state (mmsdata->pipeline, GST_STATE_PLAYING);
-
+        DEBUGLINE();
     }
-
+    DEBUGLINE();
     return TRUE;
 }
 
@@ -905,9 +914,9 @@ void v_new_buffer (GstElement *sink, MmsData *mmsdata) {
       gst_bin_add_many (GST_BIN (parent->pipeline), 
         mmsdata->v_appsrc, mmsdata->v_app_q,
         NULL);
-
+      DEBUGLINE();
       gst_element_link_many (mmsdata->v_appsrc, mmsdata->v_app_q, NULL);
-
+      DEBUGLINE();
       /* Manually link the Element, which has "Request" pads */
       /* video stream */
       pad_template   = gst_element_class_get_pad_template (GST_ELEMENT_GET_CLASS (parent->mixer), "sink_%d");
@@ -923,14 +932,14 @@ void v_new_buffer (GstElement *sink, MmsData *mmsdata) {
       gst_object_unref (videobox_pad);
       gst_object_unref (pad_template);
       gst_object_unref (mixer_pad);
-
+      DEBUGLINE();
       /* install new probe for EOS */
       pad = gst_element_get_static_pad (mmsdata->v_app_q, "src");
       //mmsdata->prob_hd_v_eos = gst_pad_add_event_probe (pad, G_CALLBACK(cb_catch_v_eos), mmsdata);
       mmsdata->prob_hd_a_eos = gst_pad_add_probe (pad, GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM,
                                                   (GstPadProbeCallback)cb_catch_v_eos, mmsdata, NULL);
       gst_object_unref (pad);
-
+      DEBUGLINE();
       gst_element_set_state (mmsdata->v_appsrc, GST_STATE_PLAYING);
       gst_element_set_state (mmsdata->v_app_q, GST_STATE_PLAYING);
 
@@ -938,7 +947,7 @@ void v_new_buffer (GstElement *sink, MmsData *mmsdata) {
     //gint64 pos;
     GstFormat format = GST_FORMAT_TIME;
     g_signal_emit_by_name (sink, "pull-sample", &buffer);
-
+    DEBUGLINE();
     g_signal_emit_by_name (mmsdata->v_appsrc, "push-buffer", buffer, &ret);
     gst_buffer_unref (buffer);
   }
@@ -951,20 +960,19 @@ void a_new_buffer (GstElement *sink, MmsData *mmsdata) {
   GstPad *mixer_pad;
   GstPad *audio_pad;
   GstPad *pad;
-
   CustomData *parent = (CustomData *)(mmsdata->parent);
   int i=mmsdata->number;
-
+  
   if(gst_bin_get_by_name(GST_BIN(parent->pipeline), GST_ELEMENT_NAME(mmsdata->a_appsrc)) == NULL &&
     GST_STATE(mmsdata->a_appsrc) <= 1 && mmsdata->prob_hd_a_eos == 0){
 
       gst_bin_add_many (GST_BIN (parent->pipeline), 
         mmsdata->a_appsrc, mmsdata->a_app_q,
         NULL);
-
+      DEBUGLINE();
       gst_element_link_many (mmsdata->a_appsrc, mmsdata->a_app_q, NULL);
       /* Manually link the Element, which has "Request" pads */
-
+      DEBUGLINE();
       /* audio stream */
       pad_template   = gst_element_class_get_pad_template (GST_ELEMENT_GET_CLASS (parent->a_mixer), "sink%d");
       mixer_pad      = gst_element_request_pad (parent->a_mixer, pad_template, NULL, NULL);
@@ -976,23 +984,23 @@ void a_new_buffer (GstElement *sink, MmsData *mmsdata) {
       gst_object_unref (audio_pad); 
       gst_object_unref (pad_template);
       gst_object_unref (mixer_pad);
-
+      DEBUGLINE();
       /* install new probe for EOS */
       pad = gst_element_get_static_pad (mmsdata->a_app_q, "src");
       //mmsdata->prob_hd_a_eos = gst_pad_add_event_probe (pad, G_CALLBACK(cb_catch_a_eos), mmsdata);
       mmsdata->prob_hd_a_eos = gst_pad_add_probe (pad, GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM,
                                                   (GstPadProbeCallback)cb_catch_a_eos, mmsdata, NULL);
       gst_object_unref (pad);
-
+      DEBUGLINE();
       gst_element_set_state (mmsdata->a_appsrc, GST_STATE_PLAYING);
       gst_element_set_state (mmsdata->a_app_q, GST_STATE_PLAYING);
-
+      DEBUGLINE();
   }else if (GST_STATE(mmsdata->a_appsrc) == GST_STATE_PLAYING){  
     //gint64 pos;
     GstFormat format = GST_FORMAT_TIME;
     g_signal_emit_by_name (sink, "pull-sample", &buffer);
     g_signal_emit_by_name (mmsdata->a_appsrc, "push-buffer", buffer, &ret);
-
+    DEBUGLINE();
     gst_buffer_unref (buffer);
   }
 }
@@ -1013,10 +1021,10 @@ static void new_buffer (GstElement *sink, CustomData *data) {
   guint8 *bdata;
   GstMemory *memory;
   GstMapInfo info;
-
+  DEBUGLINE();
     if (0 > _setmode( _fileno(stdout), _O_BINARY))
     g_printerr("NG\n");
-
+    DEBUGLINE();
   /* Retrieve the buffer */
   g_signal_emit_by_name (sink, "pull-sample", &sample, NULL);
   if (sample) {
@@ -1053,13 +1061,13 @@ static void new_buffer (GstElement *sink, CustomData *data) {
       memcpy(data->asf_head_buffer + (size + 4 - 50), bitrate_property, 38);
       memcpy(data->asf_head_buffer + (size + 4 - 50 + 38), dest, 50);
       free(dest);
-
+      DEBUGLINE();
       data->asf_head_buffer[2]=(char)(size+38);
       data->asf_head_buffer[3]=(char)(((size+38) >> 8) & 0xFF);
       data->asf_head_buffer[10]=data->asf_head_buffer[2];
       data->asf_head_buffer[11]=data->asf_head_buffer[3];
       data->asf_head_buffer[36] = data->asf_head_buffer[36] + 1; // headerobjectcount
-
+      DEBUGLINE();
       data->asf_head_size = size+38+4;
       data->asf_status = ASF_STATUS_SET_HEADER;
       gst_buffer_unref (buffer);
@@ -1095,7 +1103,7 @@ static void new_buffer (GstElement *sink, CustomData *data) {
           gst_sample_unref (sample);
           return;
         }
-
+        DEBUGLINE();
         data->packet_count++;
         free(dest);
         data->mmsh_status = MMSH_STATUS_ASF_DATA_SENDING;
@@ -1114,7 +1122,7 @@ static gboolean
     g_print ("Time: %" GST_TIME_FORMAT "\r",
       GST_TIME_ARGS (pos));
   }
-
+  DEBUGLINE();
   /* call me again */
   return TRUE;
 }
@@ -1131,16 +1139,19 @@ gpointer thread(gpointer data)
   GSource *s;
   MmsData *mmsdata = (MmsData *)data;
 
+  DEBUGLINE();
+
   c = g_main_context_new();
   mmsdata->loop = g_main_loop_new(c, FALSE);
   //s = g_timeout_source_new(10000 * (mmsdata->number * 2 + 1));
-  s = g_timeout_source_new(polling_second);
+  s = g_timeout_source_new_seconds  (polling_second);
   g_source_set_callback(s, (GSourceFunc)mms_loop, mmsdata, notify);
   g_source_attach(s, c);
   g_source_unref(s);
 
   g_main_loop_run(mmsdata->loop);
   g_message("done");
+  DEBUGLINE();
 
   return NULL;
 }
@@ -1157,7 +1168,7 @@ gpointer httpserver(gpointer in)
    int len;
    //SOCKET sock;
    BOOL yes = 1;
-
+   
    char buf[2048];
    char inbuf[2048];
 
@@ -1185,7 +1196,7 @@ gpointer httpserver(gpointer in)
 	   DEBUG("listen : %d\n", WSAGetLastError());
 	   return NULL;
    }
-
+   DEBUGLINE();
    // 応答用HTTPメッセージ作成
    memset(buf, 0, sizeof(buf));
  
@@ -1196,7 +1207,7 @@ gpointer httpserver(gpointer in)
 	     DEBUG("accept : %d\n", WSAGetLastError());
 	     break;
      }
-
+     DEBUGLINE();
      data->mmsh_status = MMSH_STATUS_CONNECTED;
 
      memset(inbuf, 0, sizeof(inbuf));
@@ -1480,7 +1491,7 @@ int
     g_printerr ("One element could not be created. Exiting.\n");
     return -1;
   }
-
+  DEBUGLINE();
   data.filtercaps1 = gst_caps_new_simple ("video/x-raw",
     // "format", GST_TYPE_FOURCC, GST_MAKE_FOURCC ('I', '4', '2', '0'),
     "format", G_TYPE_STRING, "I420",
@@ -1628,6 +1639,8 @@ int
 
   }
 
+  DEBUGLINE();
+
   /** Mms Stream Negotiation */
   data.mms = (MmsData **)malloc(sizeof(MmsData *) * stream_amount); // ポインタ配列割り当て
   for ( i=0 ; i < stream_amount ; i++ ){
@@ -1745,13 +1758,19 @@ int
     mmsdata->width = vwidth;
     mmsdata->height = vheight;
 
+    DEBUGLINE();
     /* threading */
     g_thread_new(g_strdup_printf ("thread%d", i), thread, mmsdata);
+    DEBUGLINE();
 
   }
 
+  DEBUGLINE();
+
   /* Set the pipeline to "playing" state*/
   gst_element_set_state (data.pipeline, GST_STATE_PLAYING);
+
+  DEBUGLINE();
 
   /* set latency */
   if (!gst_element_send_event (data.pipeline, gst_event_new_latency (latency)))
